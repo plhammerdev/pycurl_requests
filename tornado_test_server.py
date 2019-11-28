@@ -5,6 +5,7 @@ import uuid
 
 __UPLOADS__ = "/Users/nxm/Projects/python/pycurl_requests"
 
+PORT = 9002
 
 class Upload(tornado.web.RequestHandler):
     def post(self):
@@ -39,7 +40,8 @@ if __name__ == "__main__":
             (r"/upload", Upload),
             (r"/postjson", PostJSON),
         ], debug=True)
-    application.listen(9002)
+    print("Starting loop on port: %d" % PORT)
+    application.listen(PORT)
     tornado.ioloop.IOLoop.current().start()
 
 

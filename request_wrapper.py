@@ -1,8 +1,11 @@
+import logging
 import pycurl
 import re
+from urllib.parse import urlencode, urljoin, urlsplit
 from response import Response
 from io import BytesIO
 
+logger = logging.getLogger(__name__)
 
 
 _resp_headers = {}
@@ -38,10 +41,120 @@ def resp_header_parse(header_line):
     _resp_headers[name] = value
 
 
+def to_key_val_list(value):
+    """
+    <From requests library>
+    Take an object and test to see if it can be represented as a
+    dictionary. If it can be, return a list of tuples, e.g.,
+    ::
+        >>> to_key_val_list([('key', 'val')])
+        [('key', 'val')]
+        >>> to_key_val_list({'key': 'val'})
+        [('key', 'val')]
+        >>> to_key_val_list('string')
+        Traceback (most recent call last):
+        ...
+        ValueError: cannot encode objects that are not 2-tuples
+    :rtype: list
+    """
+    if value is None:
+        return None
 
-def request(url, method="GET", headers=None, body=None, verify=True, cert=None, verbose=False):
-    curl = pycurl.Curl()
-    curl.setopt(pycurl.CONNECTTIMEOUT, 10)
+    if isinstance(value, (str, bytes, bool, int)):
+        raise ValueError('cannot encode objects that are not 2-tuples')
+
+    if isinstance(value, Mapping):
+        value = value.items()
+
+    return list(value)
+
+
+def encode_params(data):
+    """
+    <From requests library>
+    Encode parameters in a piece of data.
+    Will successfully encode parameters when passed as a dict or a list of
+    2-tuples. Order is retained if data is a list of 2-tuples but arbitrary
+    if parameters are supplied as a dict.
+    """
+    basestring = (str, bytes)
+
+    if isinstance(data, (str, bytes)):
+        return data
+    elif hasattr(data, 'read'):
+        return data
+    elif hasattr(data, '__iter__'):
+        result = []
+        for k, vs in to_key_val_list(data):
+            if isinstance(vs, basestring) or not hasattr(vs, '__iter__'):
+                vs = [vs]
+            for v in vs:
+                if v is not None:
+                    result.append(
+                        (k.encode('utf-8') if isinstance(k, str) else k,
+                            v.encode('utf-8') if isinstance(v, str) else v))
+        return urlencode(result, doseq=True)
+    else:
+        return data
+
+class Session(object):
+    def __init__(self, headers=None, cert=None, verify=False, verbose=False):
+        self.curl = pycurl.Curl()
+        self.curl.setopt(pycurl.CONNECTTIMEOUT, 10)
+        if headers is not None:
+            assert type(headers) == dict, "headers must be passes in the form of a dict"
+            self.headers = headers
+        else:
+            self.headers = None
+        self.cert = cert
+        self.verify = verify
+        self.verbose = verbose
+
+    
+    def request(self, method, url, data, headers, params):
+        resp = request
+
+
+    def get(self, url, headers=None, verbose=None, params=None):
+        if headers is None:
+            headers = self.headers #TODO
+        if verbose is None:
+            verbose = self.verbose
+        resp = request(url, method="GET", curl=self.curl, cert=self.cert, verify=self.verify, headers=headers, params=params, data=None, verbose=verbose)
+
+        return resp
+
+
+    def post(self, url, headers=None, data=None, verbose=None, params=None):
+        if headers is None:
+            headers = self.headers
+        if verbose is None:
+            verbose = self.verbose
+        resp = request(url, method="POST", curl=self.curl, cert=self.cert, verify=self.verify, headers=headers, params=params, data=data, verbose=verbose)
+
+        return resp
+
+
+def derive_log_stmt(url, method):
+    "Log in urllib3 format"
+    url_comps = urlsplit(url)
+    log_stmt = '%s://%s "%s %s/%s"' % (url_comps[0], url_comps[1], method, url_comps[2], url_comps[3])
+
+    return log_stmt
+
+
+def request(url, method="GET", curl=None, headers=None, data=None, params=None, verify=True, cert=None, verbose=False):
+    if params is not None:
+        params_encoded = encode_params(params)
+        url = urljoin(url, params_encoded)
+
+    log_stmt = derive_log_stmt(url, method)
+    logger.debug(log_stmt)
+
+    if curl is None:
+        curl = pycurl.Curl()
+        curl.setopt(pycurl.CONNECTTIMEOUT, 10)
+
 
     buffer = BytesIO() # Supposedly faster to instantiate new one rather than clearing old buffer
     curl.setopt(curl.URL, url)
@@ -53,7 +166,7 @@ def request(url, method="GET", headers=None, body=None, verify=True, cert=None, 
     # For POST
     if method == "POST":
         curl.setopt(pycurl.POST, True)
-        curl.setopt(pycurl.POSTFIELDS, body)
+        curl.setopt(pycurl.POSTFIELDS, data)
     
     # Add headers
     if headers:
@@ -83,7 +196,7 @@ def request(url, method="GET", headers=None, body=None, verify=True, cert=None, 
     curl.setopt(curl.WRITEDATA, buffer)
     curl.perform()
     status_code = curl.getinfo(pycurl.HTTP_CODE)
-    curl.close()
+    #curl.close()
 
     resp_body = buffer.getvalue()
 
@@ -130,12 +243,14 @@ if __name__ == "__main__":
     import json
     json_body = json.dumps(sample_post_body)
 
-
-    r = request("http://localhost:9002/postjson",method='POST',body=json_body, headers={"Content-Type":"application-json", "custonm":"customheader"}, verbose=True)
+    r = request("http://localhost:9002/postjson",method='POST',data=json_body, headers={"Content-Type":"application-json", "custonm":"customheader"}, verbose=True)
     #print(r['headers'])
     print(r.status_code)
     print(r.text)
 
+    ses = Session()
+    resp = ses.get("https://jsonplaceholder.typicode.com/todos/1")
+    print(r.status_code)
 
 
 # r = request("https://reqres.in/api/users",method='POST',body=json_body, headers={"Content-Type":"application-json"}, verbose=True)
@@ -152,3 +267,12 @@ if __name__ == "__main__":
     # self.curl.setopt(pycurl.SSLKEY, WxPayConf_pub.SSLKEY_PATH)
     # self.curl.setopt(pycurl.SSLCERTTYPE, "PEM")
     # self.curl.setopt(pycurl.SSLCERT, WxPayConf_pub.SSLCERT_PATH)
+
+
+# if curl is None:
+#     if 'curl' in globals():
+#         curl = globals()['curl']
+#     else:
+#         curl = pycurl.Curl()
+#         curl.setopt(pycurl.CONNECTTIMEOUT, 10)
+#         globals()['curl'] = curl

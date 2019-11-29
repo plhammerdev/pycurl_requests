@@ -1,6 +1,7 @@
 import logging
 import pycurl
 import re
+from collections.abc import Mapping
 from urllib.parse import urlencode, urljoin, urlsplit
 from response import Response
 from io import BytesIO
@@ -105,7 +106,7 @@ class Session(object):
             assert type(headers) == dict, "headers must be passes in the form of a dict"
             self.headers = headers
         else:
-            self.headers = None
+            self.headers = {}
         self.cert = cert
         self.verify = verify
         self.verbose = verbose
@@ -116,7 +117,7 @@ class Session(object):
             headers = self.headers #TODO
         if verbose is None:
             verbose = self.verbose
-            
+
         resp = request(method, url, curl=self.curl, cert=self.cert, verify=self.verify, headers=headers, params=params, data=None, verbose=verbose)
 
         return resp

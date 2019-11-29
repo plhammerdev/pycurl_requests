@@ -111,8 +111,15 @@ class Session(object):
         self.verbose = verbose
 
     
-    def request(self, method, url, data, headers, params):
-        resp = request
+    def request(self, method, url, headers=None, params=None, data=None, verbose=None):
+        if headers is None:
+            headers = self.headers #TODO
+        if verbose is None:
+            verbose = self.verbose
+            
+        resp = request(method, url, curl=self.curl, cert=self.cert, verify=self.verify, headers=headers, params=params, data=None, verbose=verbose)
+
+        return resp
 
 
     def get(self, url, headers=None, verbose=None, params=None):

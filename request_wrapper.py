@@ -35,7 +35,7 @@ def resp_header_parse(header_line):
 
     # Header names are case insensitive.
     # Lowercase name here.
-    name = name.lower()
+    # name = name.lower()
 
     # Now we can actually record the header name and value.
     # Note: this only works when headers are not duplicated, see below.
@@ -118,7 +118,7 @@ class Session(object):
         if verbose is None:
             verbose = self.verbose
 
-        resp = request(method, url, curl=self.curl, cert=self.cert, verify=self.verify, headers=headers, params=params, data=None, verbose=verbose)
+        resp = request(url, method, curl=self.curl, cert=self.cert, verify=self.verify, headers=headers, params=params, data=None, verbose=verbose)
 
         return resp
 
@@ -218,7 +218,8 @@ def request(url, method="GET", curl=None, headers=None, data=None, params=None, 
     resp = Response(content = resp_body,
                     status_code = status_code,
                     headers = _resp_headers,
-                    request = None
+                    request = None,
+                    url = url
                     )
 
     return resp

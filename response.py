@@ -11,17 +11,33 @@ class Response(object):
         'encoding', 'reason', 'cookies', 'elapsed', 'request'
     ]
 
-    def __init__(self, content, status_code, headers, request):
+    def __init__(self, content, status_code, headers, request, url):
 
         self.content = content
         self.status_code = status_code
         self.headers = headers
         self.encoding = None
         self.request = request
+        self.url = url
 
     
     def __repr__(self):
         return '<Response [%s]>' % (self.status_code)
+
+    def raise_for_status(self):
+        http_error_msg = ''
+
+        if 400 <= self.status_code < 600:
+            reason = self.text
+
+            if self.status_code < 500:
+                http_error_msg = u'%s Client Error: %s for url: %s' % (self.status_code, reason, self.url)
+            else:
+                http_error_msg = u'%s Server Error: %s for url: %s' % (self.status_code, reason, self.url)
+
+        if http_error_msg:
+            raise ValueError(http_error_msg)
+        
 
     @property
     def apparent_encoding(self):

@@ -220,7 +220,7 @@ class Session(object):
 
     
     def request(self, method, url, headers=None, params=None, data=None, verbose=None):
-        headers=merge_setting(headers, self.headers, dict_class=CaseInsensitiveDict),
+        headers=merge_setting(headers, self.headers, dict_class=CaseInsensitiveDict)
 
         if verbose is None:
             verbose = self.verbose

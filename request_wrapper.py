@@ -225,7 +225,7 @@ class Session(object):
         if verbose is None:
             verbose = self.verbose
 
-        resp = request(url, method, curl=self.curl, cert=self.cert, verify=self.verify, headers=headers, params=params, data=None, verbose=verbose)
+        resp = request(url, method, curl=self.curl, cert=self.cert, verify=self.verify, headers=headers, params=params, data=data, verbose=verbose)
 
         return resp
 
@@ -285,7 +285,7 @@ def request(url, method="GET", curl=None, headers=None, data=None, params=None, 
 
     # For POST
     if method == "POST":
-        assert data is not None, "Passed data to be POSTed cannot be None"
+        assert data is not None, "Passed data to be POST'ed cannot be None"
         curl.setopt(pycurl.POST, True)
         curl.setopt(pycurl.POSTFIELDS, data)
     

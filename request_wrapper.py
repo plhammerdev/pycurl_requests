@@ -210,7 +210,7 @@ class Session(object):
         self.curl = pycurl.Curl()
         self.curl.setopt(pycurl.CONNECTTIMEOUT, 10)
         if headers is not None:
-            assert type(headers) == dict, "headers must be passes in the form of a dict"
+            verify_headers_type(headers)
             self.headers = headers
         else:
             self.headers = {}
@@ -258,6 +258,11 @@ def derive_log_stmt(url, method):
     return log_stmt
 
 
+def verify_headers_type(headers):
+    "Headers must be a dict/subclass MutableMapping"
+    if not isinstance(headers, MutableMapping):
+        raise ValueError("Headers provided must be in the form of a dict or of type that subclasseses collections.abc.MutableMapping")
+
 def request(url, method="GET", curl=None, headers=None, data=None, params=None, verify=True, cert=None, verbose=False):
     if params is not None:
         params_encoded = encode_params(params)
@@ -280,13 +285,14 @@ def request(url, method="GET", curl=None, headers=None, data=None, params=None, 
 
     # For POST
     if method == "POST":
+        assert data is not None, "Passed data to be POSTed cannot be None"
         curl.setopt(pycurl.POST, True)
         curl.setopt(pycurl.POSTFIELDS, data)
     
     # Add headers
     if headers:
-        if not type(headers) == dict:
-            raise ValueError("headers provided must be in the form of a dict")
+        verify_headers_type(headers)
+
         header_list = ["{0}:{1}".format(key,value) for key, value in headers.items()]
         curl.setopt(pycurl.HTTPHEADER, header_list)
 

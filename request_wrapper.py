@@ -273,7 +273,10 @@ def request(url, method="GET", curl=None, headers=None, data=None, params=None, 
 
     if curl is None:
         curl = pycurl.Curl()
-        curl.setopt(pycurl.CONNECTTIMEOUT, 10)
+    
+    # Reset curl options (must for session based)
+    curl.reset()
+    curl.setopt(pycurl.CONNECTTIMEOUT, 10)
 
 
     buffer = BytesIO() # Supposedly faster to instantiate new one rather than clearing old buffer

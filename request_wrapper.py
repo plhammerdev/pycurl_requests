@@ -302,9 +302,10 @@ def request(url, method="GET", curl=None, headers=None, data=None, params=None, 
 
     # For POST
     if method == "POST":
-        assert data is not None, "Passed data to be POST'ed cannot be None"
         curl.setopt(pycurl.POST, True)
-        curl.setopt(pycurl.POSTFIELDS, data)
+
+        if data is not None:
+            curl.setopt(pycurl.POSTFIELDS, data)
     
     # Add headers
     if headers:

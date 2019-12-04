@@ -4,7 +4,7 @@ import re
 from collections.abc import Mapping, MutableMapping
 
 from collections import OrderedDict
-from urllib.parse import urlencode, urljoin, urlsplit
+from urllib.parse import urlencode, urljoin, urlsplit, urlunsplit, urljoin, parse_qsl
 from response import Response
 from io import BytesIO
 
@@ -263,10 +263,24 @@ def verify_headers_type(headers):
     if not isinstance(headers, MutableMapping):
         raise ValueError("Headers provided must be in the form of a dict or of type that subclasseses collections.abc.MutableMapping")
 
+
+def format_url(url):
+    "Encodes the param portion of the URL"
+    url_comps = urlsplit(url)
+    urls_comps_list = [c for c in url_comps]
+    query = dict(parse_qsl(url_comps_list[3]))
+    encoded_query = encode_params(query)
+    url_comps_list[3] = encoded_query
+    
+    return urlunsplit(urls_comps_list)
+
+
 def request(url, method="GET", curl=None, headers=None, data=None, params=None, verify=True, cert=None, verbose=False):
     if params is not None:
         params_encoded = encode_params(params)
         url = urljoin(url, params_encoded)
+    else:
+        url = format_url(url)
 
     log_stmt = derive_log_stmt(url, method)
     logger.debug(log_stmt)

@@ -267,12 +267,12 @@ def verify_headers_type(headers):
 def format_url(url):
     "Encodes the param portion of the URL"
     url_comps = urlsplit(url)
-    urls_comps_list = [c for c in url_comps]
+    url_comps_list = [c for c in url_comps]
     query = dict(parse_qsl(url_comps_list[3]))
     encoded_query = encode_params(query)
     url_comps_list[3] = encoded_query
     
-    return urlunsplit(urls_comps_list)
+    return urlunsplit(url_comps_list)
 
 
 def request(url, method="GET", curl=None, headers=None, data=None, params=None, verify=True, cert=None, verbose=False):
